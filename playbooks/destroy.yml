@@ -1,0 +1,34 @@
+---
+- name: Destroy EC2
+  hosts: localhost
+  gather_facts: false
+  tasks:
+  - name: Get instances facts
+    amazon.aws.ec2_instance_info:
+      filters:
+        "tag:Name": spiderpool-vm
+    register: ec2
+
+  - name: Destroy EC2 instance
+    amazon.aws.ec2_instance:
+      instance_ids: "{{ item.instance_id }}"
+      name: spiderpool-vm
+      state: terminated
+      wait: true
+      wait_timeout: 300
+    loop: "{{ ec2.instances }}"
+    no_log: true
+
+  - name: Remove tag from EC2 instance
+    amazon.aws.ec2_tag:
+      resource: "{{ item.instance_id }}"
+      state: absent
+      tags:
+        Name: spiderpool-vm
+    loop: "{{ ec2.instances }}"
+    no_log: true
+
+  - name: Destroy security group
+    amazon.aws.ec2_group:
+      name: spiderpool-group
+      state: absent
