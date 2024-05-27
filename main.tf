@@ -7,16 +7,10 @@ terraform {
   }
 }
 
-variable "instance_name" {
-  description = "Value of the Name tag for the EC2 instance"
-  type        = string
-  default     = "TestVM"
-}
-
 variable "public_key" {
   description = "Path to public SSH key"
   type        = string
-  default     = "~/.ssh/id_ed25519.pub"
+  default     = "id_ed25519.pub"
 }
 
 provider "aws" {
@@ -46,107 +40,88 @@ data "aws_ami" "amazon_linux" {
   }
 }
 
-locals {
-  instances = {
-    instance1 = {
-      ami           = data.aws_ami.amazon_linux.id
-      instance_type = "t2.micro"
-    }
-    instance2 = {
-      ami           = data.aws_ami.amazon_linux.id
-      instance_type = "t2.micro"
-    }
-    instance3 = {
-      ami           = data.aws_ami.amazon_linux.id
-      instance_type = "t2.micro"
-    }
-  }
-}
-
-resource "aws_key_pair" "ssh_key" {
+resource "aws_key_pair" "this" {
   key_name   = "ec2"
   public_key = file(var.public_key)
 }
 
-resource "aws_vpc" "main" {
+resource "aws_vpc" "this" {
   cidr_block           = "172.31.0.0/16"
   enable_dns_hostnames = true
+}
+
+resource "aws_subnet" "public" {
+  vpc_id            = aws_vpc.this.id
+  cidr_block        = var.public_subnet_cidr
+  availability_zone = var.azs[0]
 
   tags = {
-    Name = "VPC"
+    Name = "Public Subnet"
   }
 }
 
-variable "public_subnet_cidrs" {
-  type        = list(string)
-  description = "Public Subnet CIDR values"
-  default     = ["172.31.0.0/20"]
+resource "aws_internet_gateway" "this" {
+  vpc_id = aws_vpc.this.id
 }
 
-variable "private_subnet_cidrs" {
-  type        = list(string)
-  description = "Private Subnet CIDR values"
-  default     = ["172.31.16.0/20", "172.31.32.0/20"]
-}
+resource "aws_route_table" "public" {
+  vpc_id = aws_vpc.this.id
 
-variable "azs" {
-  type        = list(string)
-  description = "Availability Zones"
-  default     = ["us-east-1a", "us-east-1b"]
-}
-
-resource "aws_subnet" "public_subnets" {
-  count             = length(var.public_subnet_cidrs)
-  vpc_id            = aws_vpc.main.id
-  cidr_block        = element(var.public_subnet_cidrs, count.index)
-  availability_zone = element(var.azs, count.index)
-
-  tags = {
-    Name = "Public Subnet ${count.index + 1}"
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.this.id
   }
 }
 
-resource "aws_subnet" "private_subnets" {
+resource "aws_route_table_association" "public" {
+  subnet_id      = aws_subnet.public.id
+  route_table_id = aws_route_table.public.id
+}
+
+
+resource "aws_eip" "nat_gw_eip" {
+  depends_on = [aws_internet_gateway.this]
+}
+
+resource "aws_nat_gateway" "this" {
+  subnet_id         = aws_subnet.public.id
+  allocation_id     = aws_eip.nat_gw_eip.id
+  connectivity_type = "public"
+}
+
+resource "aws_subnet" "private" {
   count             = length(var.private_subnet_cidrs)
-  vpc_id            = aws_vpc.main.id
+  vpc_id            = aws_vpc.this.id
   cidr_block        = element(var.private_subnet_cidrs, count.index)
-  availability_zone = element(var.azs, count.index)
+  availability_zone = var.azs[1]
 
   tags = {
     Name = "Private Subnet ${count.index + 1}"
   }
 }
 
-resource "aws_internet_gateway" "igw" {
-  vpc_id = aws_vpc.main.id
-
-  tags = {
-    Name = "VPC IG"
-  }
-}
-
-resource "aws_route_table" "public_rt" {
-  vpc_id = aws_vpc.main.id
+resource "aws_route_table" "private" {
+  vpc_id = aws_vpc.this.id
 
   route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.igw.id
+    cidr_block     = "0.0.0.0/0"
+    nat_gateway_id = aws_nat_gateway.this.id
   }
 
-  tags = {
-    Name = "Public Route Table"
+  route {
+    ipv6_cidr_block = "::/0"
+    gateway_id      = aws_internet_gateway.this.id
   }
 }
 
-resource "aws_route_table_association" "public_subnet_rt_association" {
-  count          = length(var.public_subnet_cidrs)
-  subnet_id      = element(aws_subnet.public_subnets[*].id, count.index)
-  route_table_id = aws_route_table.public_rt.id
+resource "aws_route_table_association" "private" {
+  count          = length(aws_subnet.private)
+  subnet_id      = element(aws_subnet.private, count.index).id
+  route_table_id = aws_route_table.private.id
 }
 
-resource "aws_security_group" "main" {
-  name   = "main"
-  vpc_id = aws_vpc.main.id
+resource "aws_security_group" "this" {
+  vpc_id = aws_vpc.this.id
 
   egress {
     from_port   = 0
@@ -164,15 +139,38 @@ resource "aws_security_group" "main" {
   }
 }
 
-resource "aws_instance" "this" {
-  for_each                    = local.instances
-  ami                         = each.value.ami
-  instance_type               = each.value.instance_type
-  key_name                    = aws_key_pair.ssh_key.key_name
+resource "aws_instance" "bastion" {
+  ami                         = local.bastion.ami
+  instance_type               = local.bastion.instance_type
+  key_name                    = aws_key_pair.this.key_name
   associate_public_ip_address = true
-  vpc_security_group_ids      = [aws_security_group.main.id]
-  subnet_id                   = aws_subnet.public_subnets[0].id
+  subnet_id                   = aws_subnet.public.id
+  vpc_security_group_ids      = [aws_security_group.this.id]
 
+  tags = {
+    Name = "bastion"
+  }
+}
+
+resource "aws_network_interface" "this" {
+  for_each        = local.interfaces
+  subnet_id       = each.value.subnet_id
+  security_groups = [aws_security_group.this.id]
+}
+
+resource "aws_instance" "instances" {
+  for_each      = local.instances
+  ami           = each.value.ami
+  instance_type = each.value.instance_type
+  key_name      = aws_key_pair.this.key_name
+
+  dynamic "network_interface" {
+    for_each = { for idx, id in each.value.interfaces : idx => id }
+    content {
+      network_interface_id = network_interface.value
+      device_index         = network_interface.key
+    }
+  }
   tags = {
     Name = each.key
   }
@@ -183,8 +181,10 @@ output "ami_name" {
   value       = data.aws_ami.amazon_linux.name
 }
 
-output "instance_public_dns" {
-  description = "Public DNSs of the EC2 instances"
-  value       = [for instance in aws_instance.this : instance.public_dns]
+output "bastion_dns" {
+  description = "Bastion public DNS"
+  value       = aws_instance.bastion.public_dns
 }
+
+
 
