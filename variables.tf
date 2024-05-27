@@ -1,4 +1,8 @@
-
+variable "net_cidr" {
+  type        = string
+  description = "Network CIDR"
+  default     = "172.31.0.0/16"
+}
 
 variable "public_subnet_cidr" {
   type        = string
@@ -41,12 +45,18 @@ locals {
     master = {
       ami           = data.aws_ami.amazon_linux.id
       instance_type = "t2.micro"
-      interfaces    = [aws_network_interface.this["master_eth0"].id, aws_network_interface.this["master_eth1"].id]
+      interfaces = [
+        aws_network_interface.this["master_eth0"].id,
+        aws_network_interface.this["master_eth1"].id,
+      ]
     }
     worker1 = {
       ami           = data.aws_ami.amazon_linux.id
       instance_type = "t2.micro"
-      interfaces    = [aws_network_interface.this["worker1_eth0"].id, aws_network_interface.this["worker1_eth1"].id]
+      interfaces = [
+        aws_network_interface.this["worker1_eth0"].id,
+        aws_network_interface.this["worker1_eth1"].id
+      ]
     }
   }
 }
