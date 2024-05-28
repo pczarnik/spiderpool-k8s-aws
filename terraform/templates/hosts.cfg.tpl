@@ -1,5 +1,7 @@
 [all:vars]
 ansible_python_interpreter='python3'
+ansible_ssh_common_args='-o StrictHostKeyChecking=no'
+ansible_user='ec2-user'
 
 [bastion]
 ${bastion_dns}
