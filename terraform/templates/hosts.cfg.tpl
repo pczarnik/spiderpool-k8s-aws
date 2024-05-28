@@ -1,3 +1,6 @@
+[all:vars]
+ansible_python_interpreter='python3'
+
 [bastion]
 ${bastion_dns}
 
