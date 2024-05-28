@@ -19,7 +19,10 @@ resource "local_file" "hosts_cfg" {
       bastion_private_key = "${dirname(path.cwd)}/${basename(var.bastion_private_key)}"
       bastion_dns         = aws_instance.bastion.public_dns
       master_ip           = aws_instance.master.private_ip
-      workers_ips         = [for _, instance in aws_instance.workers : instance.private_ip]
+      workers_ips = {
+        for _, instance in aws_instance.workers
+        : instance.tags["Name"] => instance.private_ip
+      }
     }
   )
   filename = "../ansible/inventory/hosts.cfg"
