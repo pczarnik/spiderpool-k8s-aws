@@ -1,0 +1,131 @@
+---
+- name: Configure cluster
+  hosts: cluster
+  become: true
+  gather_facts: false
+  tags:
+    - cluster
+  tasks:
+    - name: Disable SELinux
+      ansible.posix.selinux:
+        state: disabled
+      register: disable_selinux
+
+    - name: Reboot after disabling SELinux
+      ansible.builtin.reboot:
+        reboot_timeout: 120
+      when: disable_selinux.changed is true
+
+    - name: Add Kubernetes yum repo
+      ansible.builtin.yum_repository:
+        name: kubernetes
+        description: Kubernetes
+        baseurl: https://pkgs.k8s.io/core:/stable:/v1.30/rpm/
+        enabled: true
+        gpgkey: https://pkgs.k8s.io/core:/stable:/v1.30/rpm/repodata/repomd.xml.key
+        gpgcheck: true
+
+    - name: Add CRI-O yum repo
+      ansible.builtin.yum_repository:
+        name: cri-o
+        description: CRI-O
+        baseurl: https://pkgs.k8s.io/addons:/cri-o:/prerelease:/main/rpm/
+        enabled: true
+        gpgkey: https://pkgs.k8s.io/addons:/cri-o:/prerelease:/main/rpm/repodata/repomd.xml.key
+        gpgcheck: true
+
+    - name: Install container-selinux, cri-o, kubelet, kubeadm, kubectl
+      ansible.builtin.dnf:
+        name:
+          - container-selinux
+          - cri-o
+          - kubelet
+          - kubeadm
+          - kubectl
+
+    - name: Install kubernetes for python
+      ansible.builtin.pip:
+        name: kubernetes
+
+    - name: Disable swap
+      ansible.builtin.command: swapoff -a
+
+    - name: Load br_netfilter kernel module
+      community.general.modprobe:
+        name: br_netfilter
+        state: present
+
+    - name: Enable IP packet forwarding
+      ansible.posix.sysctl:
+        name: net.ipv4.ip_forward
+        value: '1'
+        state: present
+
+    - name: Enable kubelet service
+      ansible.builtin.service:
+        name: kubelet
+        state: started
+        enabled: true
+
+    - name: Enable CRI-O service
+      ansible.builtin.service:
+        name: crio.service
+        state: started
+        enabled: true
+
+- name: Configure master
+  hosts: master
+  become: true
+  gather_facts: false
+  tags:
+    - master
+  tasks:
+    - name: Download kubernetes images
+      ansible.builtin.command: kubeadm config images pull
+      changed_when: true
+
+    - name: Initialize kubernetes controller
+      ansible.builtin.command: kubeadm init
+      changed_when: true
+
+    - name: Ensure .kube directory exists
+      ansible.builtin.file:
+        dest: "{{ item.homedir }}/.kube"
+        state: directory
+        owner: "{{ item.user }}"
+        group: "{{ item.user }}"
+        mode: "0755"
+      loop:
+        - user: root
+          homedir: /root
+        - user: ec2-user
+          homedir: /home/ec2-user
+
+    - name: Copy kubectl config to .kube directory
+      ansible.builtin.copy:
+        src: /etc/kubernetes/admin.conf
+        remote_src: true
+        dest: "{{ item.homedir }}/.kube/config"
+        owner: "{{ item.user }}"
+        group: "{{ item.user }}"
+        mode: "0600"
+      loop:
+        - user: root
+          homedir: /root
+        - user: ec2-user
+          homedir: /home/ec2-user
+
+    - name: Get kubeadm join command
+      ansible.builtin.command: kubeadm token create --print-join-command
+      register: kubeadm_join_command
+
+- name: Configure workers
+  hosts: workers
+  remote_user: ec2-user
+  become: true
+  gather_facts: false
+  tags:
+    - workers
+  tasks:
+    - name: Join kubernetes cluster
+      ansible.builtin.command: "{{ hostvars['master'].kubeadm_join_command.stdout }}"
