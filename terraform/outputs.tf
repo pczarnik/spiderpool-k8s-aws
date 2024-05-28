@@ -14,11 +14,12 @@ output "cluster_ips" {
 }
 
 resource "local_file" "hosts_cfg" {
-  content = templatefile("${path.module}/templates/hosts.tpl",
+  content = templatefile("${path.module}/templates/hosts.cfg.tpl",
     {
-      bastion_dns = aws_instance.bastion.public_dns
-      master_ip   = aws_instance.master.private_ip
-      workers_ips = [for _, instance in aws_instance.workers : instance.private_ip]
+      bastion_private_key = "${dirname(path.cwd)}/${basename(var.bastion_private_key)}"
+      bastion_dns         = aws_instance.bastion.public_dns
+      master_ip           = aws_instance.master.private_ip
+      workers_ips         = [for _, instance in aws_instance.workers : instance.private_ip]
     }
   )
   filename = "../ansible/inventory/hosts.cfg"

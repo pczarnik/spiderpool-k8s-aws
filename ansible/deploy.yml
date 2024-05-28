@@ -1,0 +1,74 @@
+---
+- name: Configure bastion
+  hosts: bastion
+  remote_user: ec2-user
+  become: true
+  gather_facts: true
+  tasks:
+    - name: Ensure .ssh directory exists
+      ansible.builtin.file:
+        dest: "/home/ec2-user/.ssh"
+        mode: "0700"
+        owner: ec2-user
+        state: directory
+
+    - name: Install ssh key
+      ansible.builtin.copy:
+        src: "../id_ed25519"
+        dest: "/home/ec2-user/.ssh/id_ed25519"
+        mode: "0400"
+        owner: ec2-user
+
+    - name: Install vim, tmux, git
+      ansible.builtin.dnf:
+        name:
+          - vim
+          - tmux
+          - git
+        state: present
+
+- name: Configure cluster
+  hosts: cluster
+  remote_user: ec2-user
+  become: true
+  gather_facts: true
+  tasks:
+    - name: Install vim, tmux, git
+      ansible.builtin.dnf:
+        name:
+          - vim
+          - tmux
+          - git
+        state: present
+
+#         - name: Install docker
+#           ansible.builtin.dnf:
+#             name: docker
+#             state: present
+
+#         - name: Add ec2-user to docker group
+#           user:
+#             name: ec2-user
+#             groups: docker
+
+#         - name: Start docker
+#           service:
+#             name: docker.socket
+#             state: started
+
+#         - name: Add kubernets yum repos
+#           yum_repository:
+#             name: kubernets
+#             description: Kubernetes repo
+#             baseurl: https://pkgs.k8s.io/core:/stable:/v1.30/rpm/
+#             enabled: true
+#             gpgkey: https://pkgs.k8s.io/core:/stable:/v1.30/rpm/repodata/repomd.xml.key
+#             gpgcheck: true
+
+#         - name: Install kubectl
+#           ansible.builtin.dnf:
+#             name: kubectl
+
+#         - name: Install golang
+#           ansible.builtin.dnf:
+#             name: golang

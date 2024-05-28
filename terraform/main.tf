@@ -34,17 +34,6 @@ data "aws_ami" "this" {
   }
 }
 
-variable "public_key" {
-  description = "Path to public SSH key"
-  type        = string
-  default     = "id_ed25519.pub"
-}
-
-resource "aws_key_pair" "this" {
-  key_name   = "ec2"
-  public_key = file(var.public_key)
-}
-
 resource "aws_vpc" "this" {
   cidr_block           = var.net_cidr
   enable_dns_hostnames = true
