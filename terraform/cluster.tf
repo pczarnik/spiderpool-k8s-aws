@@ -58,8 +58,9 @@ resource "aws_route_table_association" "private" {
 }
 
 resource "aws_network_interface" "this" {
-  for_each        = local.interfaces
-  subnet_id       = each.value.subnet_id
+  for_each  = local.interfaces
+  subnet_id = each.value.subnet_id
+  # ipv4_prefix_count = each.value.prefix_count
   security_groups = [aws_security_group.this.id]
 }
 

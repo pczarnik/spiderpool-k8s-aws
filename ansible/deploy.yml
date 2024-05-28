@@ -41,6 +41,53 @@
           - git
         state: present
 
+    - name: Set SELinux in permissive mode
+      ansible.builtin.shell: |
+        setenforce 0
+        sed -i 's/^SELINUX=enforcing$/SELINUX=permissive/' /etc/selinux/config
+
+    - name: Add Kubernetes yum repo
+      ansible.builtin.yum_repository:
+        name: kubernets
+        description: Kubernetes repo
+        baseurl: https://pkgs.k8s.io/core:/stable:/v1.30/rpm/
+        enabled: true
+        gpgkey: https://pkgs.k8s.io/core:/stable:/v1.30/rpm/repodata/repomd.xml.key
+        gpgcheck: true
+
+    - name: Install kubelet, kubeadm and kubectl
+      ansible.builtin.dnf:
+        name:
+          - kubelet
+          - kubeadm
+          - kubectl
+
+- name: Configure master
+  hosts: master
+  remote_user: ec2-user
+  become: true
+  gather_facts: true
+  tasks:
+    - name: Initialize kubernetes master
+      ansible.builtin.command: kubeadm init
+
+    - name: Install helm
+      ansible.builtin.shell: curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
+    - name: Add spiderpool repo with helm
+      kubernetes.core.helm_repository:
+        name: spiderpool
+        repo_url: https://spidernet-io.github.io/spiderpool
+        force_update: true
+
+    - name: Install spiderpool with helm
+      kubernetes.core.helm:
+        name: spiderpool
+        chart_ref: spiderpool/spiderpool
+        namespace: kube-system
+        set_values:
+          - value: ipam.enableStatefulSet=false
+          - value: multus.multusCNI.defaultCniCRName="ipvlan-ens5"
 #         - name: Install docker
 #           ansible.builtin.dnf:
 #             name: docker
