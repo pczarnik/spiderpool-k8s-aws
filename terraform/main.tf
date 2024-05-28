@@ -20,7 +20,7 @@ data "aws_ami" "this" {
 
   filter {
     name   = "name"
-    values = ["al2023-*"]
+    values = ["RHEL-9.4*"]
   }
 
   filter {
