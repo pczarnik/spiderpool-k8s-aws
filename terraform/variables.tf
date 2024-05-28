@@ -56,7 +56,7 @@ locals {
   workers = {
     worker1 = {
       ami           = data.aws_ami.this.id
-      instance_type = "t2.small"
+      instance_type = "t2.medium"
       interfaces = [
         aws_network_interface.this["worker1_eth0"].id,
         # aws_network_interface.this["worker1_eth1"].id
