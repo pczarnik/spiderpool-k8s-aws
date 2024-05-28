@@ -29,20 +29,20 @@ locals {
   }
   interfaces = {
     master_eth0 = {
-      subnet_id = aws_subnet.private[0].id
-      # prefix_count = 2
+      subnet_id         = aws_subnet.private[0].id
+      private_ips_count = 4
     }
     # master_eth1 = {
     #   subnet_id    = aws_subnet.private[1].id
-    #   prefix_count = 1
+    #   private_ips_count = 1
     # }
     worker1_eth0 = {
-      subnet_id = aws_subnet.private[0].id
-      # prefix_count = 2
+      subnet_id         = aws_subnet.private[1].id
+      private_ips_count = 4
     }
     # worker1_eth1 = {
     #   subnet_id    = aws_subnet.private[1].id
-    #   prefix_count = 1
+    #   private_ips_count = 1
     # }
   }
   master = {
