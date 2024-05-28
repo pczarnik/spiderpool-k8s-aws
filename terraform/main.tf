@@ -43,7 +43,7 @@ resource "aws_internet_gateway" "this" {
   vpc_id = aws_vpc.this.id
 }
 
-resource "aws_security_group" "this" {
+resource "aws_security_group" "main" {
   vpc_id = aws_vpc.this.id
 
   egress {
@@ -58,7 +58,5 @@ resource "aws_security_group" "this" {
     to_port     = 22
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
-
   }
 }
-

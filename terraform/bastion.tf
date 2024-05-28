@@ -33,14 +33,13 @@ resource "aws_route_table_association" "public" {
   route_table_id = aws_route_table.public.id
 }
 
-
 resource "aws_instance" "bastion" {
   ami                         = local.bastion.ami
   instance_type               = local.bastion.instance_type
   key_name                    = aws_key_pair.local.key_name
   associate_public_ip_address = true
   subnet_id                   = aws_subnet.public.id
-  vpc_security_group_ids      = [aws_security_group.this.id]
+  vpc_security_group_ids      = [aws_security_group.main.id]
 
   tags = {
     Name = "bastion"

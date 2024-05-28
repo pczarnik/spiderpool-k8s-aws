@@ -57,11 +57,32 @@ resource "aws_route_table_association" "private" {
   route_table_id = aws_route_table.private.id
 }
 
+resource "aws_security_group" "cluster" {
+  vpc_id = aws_vpc.this.id
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
 resource "aws_network_interface" "this" {
   for_each  = local.interfaces
   subnet_id = each.value.subnet_id
   # ipv4_prefix_count = each.value.prefix_count
-  security_groups = [aws_security_group.this.id]
+  security_groups = [
+    aws_security_group.main.id,
+    aws_security_group.cluster.id,
+  ]
 }
 
 resource "aws_instance" "master" {
