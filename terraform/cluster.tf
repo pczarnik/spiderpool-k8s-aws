@@ -46,8 +46,25 @@ resource "aws_network_interface" "this" {
   security_groups = [aws_security_group.this.id]
 }
 
-resource "aws_instance" "instances" {
-  for_each      = local.instances
+resource "aws_instance" "master" {
+  ami           = local.master.ami
+  instance_type = local.master.instance_type
+  key_name      = aws_key_pair.this.key_name
+
+  dynamic "network_interface" {
+    for_each = { for idx, id in local.master.interfaces : idx => id }
+    content {
+      network_interface_id = network_interface.value
+      device_index         = network_interface.key
+    }
+  }
+  tags = {
+    Name = "master"
+  }
+}
+
+resource "aws_instance" "workers" {
+  for_each      = local.workers
   ami           = each.value.ami
   instance_type = each.value.instance_type
   key_name      = aws_key_pair.this.key_name
