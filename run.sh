@@ -12,4 +12,5 @@ sleep 10
 ansible-playbook -i inventory/hosts.cfg predeploy.yml
 ansible-playbook -i inventory/hosts.cfg deploy_k8s.yml
 ansible-playbook -i inventory/hosts.cfg deploy_spiderpool.yml
+ansible-playbook -i inventory/hosts.cfg deploy_apps.yml
 cd ..
