@@ -40,7 +40,7 @@
           - value: ipam.enableStatefulSet=false
           - value: multus.multusCNI.defaultCniCRName="ipvlan-eth0"
 
-    - name: Pause for 30 seconds to let cluster stabilize itself
+    - name: Pause for 30 seconds
       ansible.builtin.pause:
         seconds: 30
 
@@ -52,7 +52,7 @@
         name: ipvlan-eth0
         state: absent
 
-    - name: Apply custom Spiderpool Multus config
+    - name: Apply custom Spiderpool Multus ipvlan config
       kubernetes.core.k8s:
         definition: "{{ lookup('file', '../manifests/SpiderMultusConfig.yaml') | from_yaml_all }}"
         state: present
@@ -62,10 +62,30 @@
         definition: "{{ lookup('file', '../manifests/SpiderIPPool.yaml') | from_yaml_all }}"
         state: present
 
+    - name: Pause for 10 seconds
+      ansible.builtin.pause:
+        seconds: 10
+
+- name: Deploy apps
+  hosts: master
+  become: false
+  gather_facts: false
+  tags:
+    - deploy-apps
+  tasks:
+    - name: Create busybox deployment
+      kubernetes.core.k8s:
+        definition: "{{ lookup('file', '../manifests/Deployment-busybox.yaml') | from_yaml_all }}"
+        state: present
+
     - name: Create nginx deployment
       kubernetes.core.k8s:
         definition: "{{ lookup('file', '../manifests/Deployment-nginx.yaml') | from_yaml_all }}"
         state: present
+
+    - name: Pause for 30 seconds
+      ansible.builtin.pause:
+        seconds: 30
 
 - name: Print pods and Spiderpool IP pools
   hosts: master
@@ -84,6 +104,17 @@
       register: kubectl_get_spiderippools
       changed_when: false
 
+    - name: Get busybox pod names
+      ansible.builtin.command: kubectl get pods -oNAME --selector=run=busybox
+      register: busybox_pod_names
+      changed_when: false
+
+    - name: Get IPs from inside of busybox pods
+      ansible.builtin.command: "kubectl exec -it {{ item }} -- ip -4 addr show scope global"
+      loop: "{{ busybox_pod_names.stdout_lines }}"
+      register: busybox_pods_ips
+      changed_when: false
+
     - name: Print pods
       ansible.builtin.debug:
         var: kubectl_get_pods.stdout_lines
@@ -91,3 +122,10 @@
     - name: Print Spiderpool IP pools
       ansible.builtin.debug:
         var: kubectl_get_spiderippools.stdout_lines
+
+    - name: Print IPs from inside of pods
+      ansible.builtin.debug:
+        msg: "{{ item.stdout_lines }}"
+      loop_control:
+        label: "{{ item.item }}"
+      loop: "{{ busybox_pods_ips.results }}"

@@ -1,4 +1,28 @@
 ---
+- name: Wait for connection to bastion
+  hosts: bastion
+  become: true
+  gather_facts: false
+  tags:
+    - bastion
+  tasks:
+    - name: Wait for bastion to become reachable
+      ansible.builtin.wait_for_connection:
+        delay: 1
+        timeout: 60
+
+- name: Wait for connection to cluster
+  hosts: cluster
+  become: true
+  gather_facts: false
+  tags:
+    - cluster
+  tasks:
+    - name: Wait for cluster to become reachable
+      ansible.builtin.wait_for_connection:
+        delay: 1
+        timeout: 36
+
 - name: Configure bastion and cluster
   hosts: bastion,cluster
   become: true

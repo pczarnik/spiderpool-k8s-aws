@@ -34,19 +34,35 @@ locals {
     }
     worker1_eth0 = {
       subnet_id = aws_subnet.private[1].id
-      ip_list   = ["172.31.65.1", "172.31.65.2", "172.31.65.3", "172.31.65.4"]
+      ip_list   = [for i in range(1, 5) : "172.31.65.${i}"]
     }
     worker1_eth1 = {
       subnet_id = aws_subnet.private[2].id
-      ip_list   = ["172.31.97.1", "172.31.97.2", "172.31.97.3", "172.31.97.4"]
+      ip_list   = [for i in range(1, 5) : "172.31.97.${i}"]
     }
     worker2_eth0 = {
       subnet_id = aws_subnet.private[1].id
-      ip_list   = ["172.31.66.1", "172.31.66.2", "172.31.66.3", "172.31.66.4"]
+      ip_list   = [for i in range(1, 5) : "172.31.66.${i}"]
     }
     worker2_eth1 = {
       subnet_id = aws_subnet.private[2].id
-      ip_list   = ["172.31.98.1", "172.31.98.2", "172.31.98.3", "172.31.98.4"]
+      ip_list   = [for i in range(1, 5) : "172.31.98.${i}"]
+    }
+    worker3_eth0 = {
+      subnet_id = aws_subnet.private[1].id
+      ip_list   = [for i in range(1, 5) : "172.31.67.${i}"]
+    }
+    worker3_eth1 = {
+      subnet_id = aws_subnet.private[2].id
+      ip_list   = [for i in range(1, 5) : "172.31.99.${i}"]
+    }
+    worker4_eth0 = {
+      subnet_id = aws_subnet.private[1].id
+      ip_list   = [for i in range(1, 5) : "172.31.68.${i}"]
+    }
+    worker4_eth1 = {
+      subnet_id = aws_subnet.private[2].id
+      ip_list   = [for i in range(1, 5) : "172.31.100.${i}"]
     }
   }
   master = {
@@ -71,6 +87,22 @@ locals {
       interfaces = [
         aws_network_interface.this["worker2_eth0"].id,
         aws_network_interface.this["worker2_eth1"].id
+      ]
+    }
+    worker3 = {
+      ami           = data.aws_ami.this.id
+      instance_type = "t2.large"
+      interfaces = [
+        aws_network_interface.this["worker3_eth0"].id,
+        aws_network_interface.this["worker3_eth1"].id
+      ]
+    }
+    worker4 = {
+      ami           = data.aws_ami.this.id
+      instance_type = "t2.large"
+      interfaces = [
+        aws_network_interface.this["worker4_eth0"].id,
+        aws_network_interface.this["worker4_eth1"].id
       ]
     }
   }

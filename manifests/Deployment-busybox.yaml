@@ -2,12 +2,12 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: nginx
+  name: busybox
   namespace: default
 spec:
   selector:
     matchLabels:
-      run: nginx
+      run: busybox
   replicas: 4
   template:
     metadata:
@@ -18,11 +18,10 @@ spec:
           [{"interface": "eth0", "ipv4": ["172-31-64-0"]},
            {"interface": "net1", "ipv4": ["172-31-96-0"]}]
       labels:
-        run: nginx
+        run: busybox
     spec:
       containers:
-        - name: nginx
-          image: nginx
+        - name: ippool-test
+          image: busybox
           imagePullPolicy: IfNotPresent
-          ports:
-            - containerPort: 80
+          command: ["/bin/sh", "-c", "trap : TERM INT; sleep infinity & wait"]
