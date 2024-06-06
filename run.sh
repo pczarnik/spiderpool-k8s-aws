@@ -4,9 +4,12 @@ set -eu
 set -o pipefail
 
 cd terraform
-terraform apply
+terraform apply --auto-approve
 cd ..
 
 cd ansible
-ansible-playbook -i inventory/hosts.cfg deploy.yml
+sleep 10
+ansible-playbook -i inventory/hosts.cfg predeploy.yml
+ansible-playbook -i inventory/hosts.cfg deploy_k8s.yml
+ansible-playbook -i inventory/hosts.cfg deploy_spiderpool.yml
 cd ..

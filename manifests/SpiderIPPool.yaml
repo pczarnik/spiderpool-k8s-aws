@@ -1,0 +1,26 @@
+---
+apiVersion: spiderpool.spidernet.io/v2beta1
+kind: SpiderIPPool
+metadata:
+  name: 172-31-64-0
+spec:
+  subnet: 172.31.64.0/20
+  ips:
+    - 172.31.65.1-172.31.65.4
+    - 172.31.66.1-172.31.66.4
+  gateway: 172.31.64.1
+  default: true
+  multusName: ["kube-system/ipvlan-eth0"]
+---
+apiVersion: spiderpool.spidernet.io/v2beta1
+kind: SpiderIPPool
+metadata:
+  name: 172-31-96-0
+spec:
+  subnet: 172.31.96.0/20
+  ips:
+    - 172.31.97.1-172.31.97.4
+    - 172.31.98.1-172.31.98.4
+  gateway: 172.31.96.1
+  default: true
+  multusName: ["kube-system/ipvlan-eth1"]

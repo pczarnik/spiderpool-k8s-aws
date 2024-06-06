@@ -11,7 +11,7 @@
         state: disabled
       register: disable_selinux
 
-    - name: Reboot after disabling SELinux
+    - name: Reboot after disabling SELinux # noqa: no-handler
       ansible.builtin.reboot:
         reboot_timeout: 120
       when: disable_selinux.changed is true
@@ -41,14 +41,10 @@
           - cri-o
           - kubelet
           - kubeadm
-          - kubectl
-
-    - name: Install kubernetes for python
-      ansible.builtin.pip:
-        name: kubernetes
 
     - name: Disable swap
       ansible.builtin.command: swapoff -a
+      changed_when: true
 
     - name: Load br_netfilter kernel module
       community.general.modprobe:
@@ -80,6 +76,19 @@
   tags:
     - master
   tasks:
+    - name: Install kubectl
+      ansible.builtin.dnf:
+        name: kubectl
+
+    - name: Add bash completion for kubectl
+      ansible.builtin.lineinfile:
+        line: "source <(kubectl completion bash)"
+        path: /home/ec2-user/.bashrc
+
+    - name: Install kubernetes python package
+      ansible.builtin.pip:
+        name: kubernetes
+
     - name: Download kubernetes images
       ansible.builtin.command: kubeadm config images pull
       changed_when: true
@@ -90,38 +99,28 @@
 
     - name: Ensure .kube directory exists
       ansible.builtin.file:
-        dest: "{{ item.homedir }}/.kube"
+        dest: /home/ec2-user/.kube
         state: directory
-        owner: "{{ item.user }}"
-        group: "{{ item.user }}"
+        owner: ec2-user
+        group: ec2-user
         mode: "0755"
-      loop:
-        - user: root
-          homedir: /root
-        - user: ec2-user
-          homedir: /home/ec2-user
 
     - name: Copy kubectl config to .kube directory
       ansible.builtin.copy:
         src: /etc/kubernetes/admin.conf
         remote_src: true
-        dest: "{{ item.homedir }}/.kube/config"
-        owner: "{{ item.user }}"
-        group: "{{ item.user }}"
+        dest: /home/ec2-user/.kube/config
+        owner: ec2-user
+        group: ec2-user
         mode: "0600"
-      loop:
-        - user: root
-          homedir: /root
-        - user: ec2-user
-          homedir: /home/ec2-user
 
     - name: Get kubeadm join command
       ansible.builtin.command: kubeadm token create --print-join-command
       register: kubeadm_join_command
+      changed_when: false
 
 - name: Configure workers
   hosts: workers
-  remote_user: ec2-user
   become: true
   gather_facts: false
   tags:
@@ -129,3 +128,20 @@
   tasks:
     - name: Join kubernetes cluster
       ansible.builtin.command: "{{ hostvars['master'].kubeadm_join_command.stdout }}"
+      changed_when: true
+
+- name: Print nodes
+  hosts: master
+  become: false
+  gather_facts: false
+  tags:
+    - print
+  tasks:
+    - name: Get nodes
+      ansible.builtin.command: kubectl get nodes -owide
+      register: kubectl_get_nodes
+      changed_when: false
+
+    - name: Print nodes
+      ansible.builtin.debug:
+        var: kubectl_get_nodes.stdout_lines

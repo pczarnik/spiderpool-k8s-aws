@@ -76,9 +76,10 @@ resource "aws_security_group" "cluster" {
 }
 
 resource "aws_network_interface" "this" {
-  for_each          = local.interfaces
-  subnet_id         = each.value.subnet_id
-  private_ips_count = each.value.private_ips_count
+  for_each                = local.interfaces
+  subnet_id               = each.value.subnet_id
+  private_ip_list_enabled = true
+  private_ip_list         = each.value.ip_list
   security_groups = [
     aws_security_group.main.id,
     aws_security_group.cluster.id,

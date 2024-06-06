@@ -4,7 +4,7 @@
   become: false
   gather_facts: false
   tags:
-    - master
+    - deploy
   tasks:
     - name: Check if helm is installed
       ansible.builtin.command: which helm
@@ -40,13 +40,54 @@
           - value: ipam.enableStatefulSet=false
           - value: multus.multusCNI.defaultCniCRName="ipvlan-eth0"
 
+    - name: Pause for 30 seconds to let cluster stabilize itself
+      ansible.builtin.pause:
+        seconds: 30
+
     - name: Remove default SpiderMultusConfig
       kubernetes.core.k8s:
-        api_version: ""
+        api_version: "spiderpool.spidernet.io/v2beta1"
         kind: SpiderMultusConfig
         namespace: kube-system
         name: ipvlan-eth0
         state: absent
 
-    # - name: Apply custom SpiderMultusConfig
-    #   kubernetes.core.k8s:
+    - name: Apply custom Spiderpool Multus config
+      kubernetes.core.k8s:
+        definition: "{{ lookup('file', '../manifests/SpiderMultusConfig.yaml') | from_yaml_all }}"
+        state: present
+
+    - name: Add Spiderpool IP pools
+      kubernetes.core.k8s:
+        definition: "{{ lookup('file', '../manifests/SpiderIPPool.yaml') | from_yaml_all }}"
+        state: present
+
+    - name: Create nginx deployment
+      kubernetes.core.k8s:
+        definition: "{{ lookup('file', '../manifests/Deployment-nginx.yaml') | from_yaml_all }}"
+        state: present
+
+- name: Print pods and Spiderpool IP pools
+  hosts: master
+  become: false
+  gather_facts: false
+  tags:
+    - print
+  tasks:
+    - name: Get pods
+      ansible.builtin.command: kubectl get pods -owide
+      register: kubectl_get_pods
+      changed_when: false
+
+    - name: Get Spiderpool IP pools
+      ansible.builtin.command: kubectl get spiderippools.spiderpool.spidernet.io
+      register: kubectl_get_spiderippools
+      changed_when: false
+
+    - name: Print pods
+      ansible.builtin.debug:
+        var: kubectl_get_pods.stdout_lines
+
+    - name: Print Spiderpool IP pools
+      ansible.builtin.debug:
+        var: kubectl_get_spiderippools.stdout_lines

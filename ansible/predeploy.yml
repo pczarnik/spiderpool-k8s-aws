@@ -26,11 +26,6 @@
       when: hostvars[item].ansible_host is defined
       with_items: "{{ groups.cluster }}"
 
-    - name: Remove subscription manager
-      ansible.builtin.dnf:
-        name: subscription-manager
-        state: absent
-
     - name: Install vim, tmux, git, bash-completion, python3-pip
       ansible.builtin.dnf:
         name:
