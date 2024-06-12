@@ -1,24 +1,21 @@
-output "bastion_dns" {
-  description = "Bastion public DNS"
-  value       = aws_instance.bastion.public_dns
+output "master_dns" {
+  description = "master public DNS"
+  value       = aws_instance.master.public_dns
 }
 
 output "cluster_ips" {
   description = "Private IPs of cluster"
   value = {
-    for instance_name, instance in merge(
-      { "master" : aws_instance.master },
-      aws_instance.workers
-    ) : instance_name => instance.private_ip
+    for instance_name, instance in aws_instance.workers
+    : instance_name => instance.private_ip
   }
 }
 
 resource "local_file" "hosts_cfg" {
   content = templatefile("${path.module}/templates/hosts.cfg.tpl",
     {
-      bastion_private_key = "${dirname(path.cwd)}/${basename(var.bastion_private_key)}"
-      bastion_dns         = aws_instance.bastion.public_dns
-      master_ip           = aws_instance.master.private_ip
+      master_private_key = "${dirname(path.cwd)}/${basename(var.master_private_key)}"
+      master_dns         = aws_instance.master.public_dns
       workers_ips = {
         for _, instance in aws_instance.workers
         : instance.tags["Name"] => instance.private_ip

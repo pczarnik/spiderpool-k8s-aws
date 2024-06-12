@@ -13,7 +13,7 @@ variable "public_subnet_cidr" {
 variable "private_subnet_cidrs" {
   type        = list(string)
   description = "Private Subnet CIDRs"
-  default     = ["172.31.16.0/20", "172.31.64.0/20", "172.31.96.0/20"]
+  default     = ["172.31.64.0/20", "172.31.96.0/20"]
 }
 
 variable "azs" {
@@ -23,54 +23,43 @@ variable "azs" {
 }
 
 locals {
-  bastion = {
-    ami           = data.aws_ami.this.id
-    instance_type = "t2.micro"
-  }
-  interfaces = {
-    master_eth0 = {
-      subnet_id = aws_subnet.private[0].id
-      ip_list   = ["172.31.17.1"]
-    }
-    worker1_eth0 = {
-      subnet_id = aws_subnet.private[1].id
-      ip_list   = [for i in range(1, 5) : "172.31.65.${i}"]
-    }
-    worker1_eth1 = {
-      subnet_id = aws_subnet.private[2].id
-      ip_list   = [for i in range(1, 5) : "172.31.97.${i}"]
-    }
-    worker2_eth0 = {
-      subnet_id = aws_subnet.private[1].id
-      ip_list   = [for i in range(1, 5) : "172.31.66.${i}"]
-    }
-    worker2_eth1 = {
-      subnet_id = aws_subnet.private[2].id
-      ip_list   = [for i in range(1, 5) : "172.31.98.${i}"]
-    }
-    worker3_eth0 = {
-      subnet_id = aws_subnet.private[1].id
-      ip_list   = [for i in range(1, 5) : "172.31.67.${i}"]
-    }
-    worker3_eth1 = {
-      subnet_id = aws_subnet.private[2].id
-      ip_list   = [for i in range(1, 5) : "172.31.99.${i}"]
-    }
-    worker4_eth0 = {
-      subnet_id = aws_subnet.private[1].id
-      ip_list   = [for i in range(1, 5) : "172.31.68.${i}"]
-    }
-    worker4_eth1 = {
-      subnet_id = aws_subnet.private[2].id
-      ip_list   = [for i in range(1, 5) : "172.31.100.${i}"]
-    }
-  }
   master = {
     ami           = data.aws_ami.this.id
     instance_type = "t2.large"
-    interfaces = [
-      aws_network_interface.this["master_eth0"].id
-    ]
+  }
+  interfaces = {
+    worker1_eth0 = {
+      subnet_id = aws_subnet.private[0].id
+      ip_list   = [for i in range(1, 5) : "172.31.65.${i}"]
+    }
+    worker1_eth1 = {
+      subnet_id = aws_subnet.private[1].id
+      ip_list   = [for i in range(1, 5) : "172.31.97.${i}"]
+    }
+    worker2_eth0 = {
+      subnet_id = aws_subnet.private[0].id
+      ip_list   = [for i in range(1, 5) : "172.31.66.${i}"]
+    }
+    worker2_eth1 = {
+      subnet_id = aws_subnet.private[1].id
+      ip_list   = [for i in range(1, 5) : "172.31.98.${i}"]
+    }
+    worker3_eth0 = {
+      subnet_id = aws_subnet.private[0].id
+      ip_list   = [for i in range(1, 5) : "172.31.67.${i}"]
+    }
+    worker3_eth1 = {
+      subnet_id = aws_subnet.private[1].id
+      ip_list   = [for i in range(1, 5) : "172.31.99.${i}"]
+    }
+    worker4_eth0 = {
+      subnet_id = aws_subnet.private[0].id
+      ip_list   = [for i in range(1, 5) : "172.31.68.${i}"]
+    }
+    worker4_eth1 = {
+      subnet_id = aws_subnet.private[1].id
+      ip_list   = [for i in range(1, 5) : "172.31.100.${i}"]
+    }
   }
   workers = {
     worker1 = {

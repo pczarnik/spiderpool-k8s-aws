@@ -1,20 +1,19 @@
-variable "bastion_private_key" {
+variable "master_private_key" {
   description = "Path to private SSH key"
   type        = string
   default     = "../id_ed25519"
 }
 
-variable "bastion_public_key" {
+variable "master_public_key" {
   description = "Path to public SSH key"
   type        = string
   default     = "../id_ed25519.pub"
 }
 
-resource "aws_key_pair" "bastion" {
-  key_name   = "bastion-ec2"
-  public_key = file(var.bastion_public_key)
+resource "aws_key_pair" "master" {
+  key_name   = "master-ec2"
+  public_key = file(var.master_public_key)
 }
-
 
 resource "aws_eip" "nat_gw_eip" {
   depends_on = [aws_internet_gateway.this]
@@ -86,28 +85,11 @@ resource "aws_network_interface" "this" {
   ]
 }
 
-resource "aws_instance" "master" {
-  ami           = local.master.ami
-  instance_type = local.master.instance_type
-  key_name      = aws_key_pair.bastion.key_name
-
-  dynamic "network_interface" {
-    for_each = { for idx, id in local.master.interfaces : idx => id }
-    content {
-      network_interface_id = network_interface.value
-      device_index         = network_interface.key
-    }
-  }
-  tags = {
-    Name = "master"
-  }
-}
-
 resource "aws_instance" "workers" {
   for_each      = local.workers
   ami           = each.value.ami
   instance_type = each.value.instance_type
-  key_name      = aws_key_pair.bastion.key_name
+  key_name      = aws_key_pair.master.key_name
 
   dynamic "network_interface" {
     for_each = { for idx, id in each.value.interfaces : idx => id }

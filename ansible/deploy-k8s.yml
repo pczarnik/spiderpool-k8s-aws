@@ -11,10 +11,15 @@
         state: disabled
       register: disable_selinux
 
-    - name: Reboot after disabling SELinux # noqa: no-handler
+    - name: Reboot workers after disabling SELinux # noqa: no-handler
       ansible.builtin.reboot:
         reboot_timeout: 120
-      when: disable_selinux.changed is true
+      when: inventory_hostname != "master" and disable_selinux.changed is true
+
+    - name: Reboot master after disabling SELinux # noqa: no-handler
+      ansible.builtin.reboot:
+        reboot_timeout: 120
+      when: inventory_hostname == "master" and disable_selinux.changed is true
 
     - name: Add Kubernetes yum repo
       ansible.builtin.yum_repository:

@@ -1,35 +1,16 @@
 ---
-- name: Wait for connection to bastion
-  hosts: bastion
+- name: Configure master
+  hosts: master
   become: true
   gather_facts: false
   tags:
-    - bastion
+    - master
   tasks:
-    - name: Wait for bastion to become reachable
+    - name: Wait for master to become reachable
       ansible.builtin.wait_for_connection:
         delay: 1
         timeout: 60
 
-- name: Wait for connection to cluster
-  hosts: cluster
-  become: true
-  gather_facts: false
-  tags:
-    - cluster
-  tasks:
-    - name: Wait for cluster to become reachable
-      ansible.builtin.wait_for_connection:
-        delay: 1
-        timeout: 36
-
-- name: Configure bastion and cluster
-  hosts: bastion,cluster
-  become: true
-  gather_facts: false
-  tags:
-    - bastion-cluster
-  tasks:
     - name: Install ssh key
       ansible.builtin.copy:
         src: "../id_ed25519"
@@ -37,18 +18,28 @@
         mode: "0400"
         owner: ec2-user
 
+- name: Wait for connection to workers
+  hosts: workers
+  become: true
+  gather_facts: false
+  tags:
+    - workers
+  tasks:
+    - name: Wait for workers to become reachable
+      ansible.builtin.wait_for_connection:
+        delay: 1
+        timeout: 36
+
+- name: Configure cluster
+  hosts: cluster
+  become: true
+  gather_facts: false
+  tags:
+    - cluster
+  tasks:
     - name: Set hostname
       ansible.builtin.hostname:
         name: "{{ inventory_hostname }}"
-
-    - name: Add cluster IPs to /etc/hosts
-      ansible.builtin.lineinfile:
-        dest: /etc/hosts
-        regexp: '.*{{ item }}$'
-        line: "{{ hostvars[item].ansible_host }} {{ item }}"
-        state: present
-      when: hostvars[item].ansible_host is defined
-      with_items: "{{ groups.cluster }}"
 
     - name: Install vim, tmux, git, bash-completion, python3-pip
       ansible.builtin.dnf:
