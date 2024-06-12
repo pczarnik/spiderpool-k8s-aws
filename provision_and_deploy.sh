@@ -8,6 +8,7 @@ echo -e 'y\n' | ssh-keygen -t ed25519 -f ./id_ed25519 -N '' -q 1> /dev/null
 
 echo "Applying terraform configuration"
 cd terraform
+terraform init
 terraform apply --auto-approve
 cd -
 

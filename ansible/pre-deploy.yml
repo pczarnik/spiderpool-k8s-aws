@@ -18,6 +18,15 @@
         mode: "0400"
         owner: ec2-user
 
+    - name: Add cluster IPs to /etc/hosts
+      ansible.builtin.lineinfile:
+        dest: /etc/hosts
+        regexp: '.*{{ item }}$'
+        line: "{{ hostvars[item].ansible_host }} {{ item }}"
+        state: present
+      when: hostvars[item].ansible_host is defined
+      with_items: "{{ groups.cluster }}"
+
 - name: Wait for connection to workers
   hosts: workers
   become: false
