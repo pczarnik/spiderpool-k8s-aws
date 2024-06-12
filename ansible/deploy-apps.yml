@@ -1,10 +1,12 @@
 ---
 - name: Deploy apps
-  hosts: master
+  hosts: localhost
   become: false
   gather_facts: false
   tags:
     - deploy-apps
+  environment:
+    KUBECONFIG: "../kubeconfig"
   tasks:
     - name: Create busybox deployment
       kubernetes.core.k8s:
@@ -25,11 +27,13 @@
         seconds: 30
 
 - name: Print Spiderpool IP pools
-  hosts: master
+  hosts: localhost
   become: false
   gather_facts: false
   tags:
     - print
+  environment:
+    KUBECONFIG: "../kubeconfig"
   tasks:
     - name: Get pods
       ansible.builtin.command: kubectl get pods -owide

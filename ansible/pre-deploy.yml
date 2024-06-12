@@ -20,7 +20,7 @@
 
 - name: Wait for connection to workers
   hosts: workers
-  become: true
+  become: false
   gather_facts: false
   tags:
     - workers

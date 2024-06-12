@@ -1,31 +1,13 @@
 ---
-- name: Configure master
-  hosts: master
+- name: Configure spiderpool
+  hosts: localhost
   become: false
   gather_facts: false
   tags:
     - deploy
+  environment:
+    KUBECONFIG: "../kubeconfig"
   tasks:
-    - name: Check if helm is installed
-      ansible.builtin.command: which helm
-      register: which_helm
-      ignore_errors: true
-      failed_when: false
-      changed_when: false
-
-    - name: Download and install helm
-      when: which_helm.rc != 0
-      block:
-        - name: Download helm installation script
-          ansible.builtin.get_url:
-            url: https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
-            dest: /home/ec2-user/get-helm-3.sh
-            mode: "0700"
-
-        - name: Install helm
-          ansible.builtin.command: /home/ec2-user/get-helm-3.sh
-          changed_when: true
-
     - name: Add spiderpool repo with helm
       kubernetes.core.helm_repository:
         name: spiderpool
@@ -67,11 +49,13 @@
         seconds: 10
 
 - name: Print Spiderpool IP pools
-  hosts: master
+  hosts: localhost
   become: false
   gather_facts: false
   tags:
     - print
+  environment:
+    KUBECONFIG: "../kubeconfig"
   tasks:
     - name: Get Spiderpool IP pools
       ansible.builtin.command: kubectl get spiderippools.spiderpool.spidernet.io

@@ -4,3 +4,4 @@
 .terraform/
 id_*
 hosts.cfg
+kubeconfig

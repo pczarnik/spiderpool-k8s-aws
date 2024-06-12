@@ -99,7 +99,8 @@
       changed_when: true
 
     - name: Initialize kubernetes controller
-      ansible.builtin.command: kubeadm init
+      ansible.builtin.command: |
+        kubeadm init --control-plane-endpoint "{{ ansible_host }}:6443"
       changed_when: true
 
     - name: Ensure .kube directory exists
@@ -119,6 +120,19 @@
         group: ec2-user
         mode: "0600"
 
+    - name: Copy kubectl config to local machine
+      ansible.builtin.fetch:
+        src: /etc/kubernetes/admin.conf
+        dest: ../kubeconfig
+        flat: true
+
+- name: Get kubeadm join command from master
+  hosts: master
+  become: true
+  gather_facts: false
+  tags:
+    - join-workers
+  tasks:
     - name: Get kubeadm join command
       ansible.builtin.command: kubeadm token create --print-join-command
       register: kubeadm_join_command
@@ -129,16 +143,18 @@
   become: true
   gather_facts: false
   tags:
-    - workers
+    - join-workers
   tasks:
     - name: Join kubernetes cluster
       ansible.builtin.command: "{{ hostvars['master'].kubeadm_join_command.stdout }}"
       changed_when: true
 
 - name: Print nodes
-  hosts: master
+  hosts: localhost
   become: false
   gather_facts: false
+  environment:
+    KUBECONFIG: "../kubeconfig"
   tags:
     - print
   tasks:
