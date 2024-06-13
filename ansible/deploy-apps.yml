@@ -17,14 +17,14 @@
       ansible.builtin.pause:
         seconds: 30
 
-    - name: Create nginx deployment
-      kubernetes.core.k8s:
-        definition: "{{ lookup('file', '../manifests/Deployment-nginx.yaml') | from_yaml_all }}"
-        state: present
+    # - name: Create nginx deployment
+    #   kubernetes.core.k8s:
+    #     definition: "{{ lookup('file', '../manifests/Deployment-nginx.yaml') | from_yaml_all }}"
+    #     state: present
 
-    - name: Pause for 30 seconds
-      ansible.builtin.pause:
-        seconds: 30
+    # - name: Pause for 30 seconds
+    #   ansible.builtin.pause:
+    #     seconds: 30
 
 - name: Print Spiderpool IP pools
   hosts: localhost
