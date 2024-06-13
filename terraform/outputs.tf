@@ -3,8 +3,8 @@ output "master_dns" {
   value       = aws_instance.master.public_dns
 }
 
-output "cluster_ips" {
-  description = "Private IPs of cluster"
+output "worker_ips" {
+  description = "Private IPs of workers"
   value = {
     for instance_name, instance in aws_instance.workers
     : instance_name => instance.private_ip

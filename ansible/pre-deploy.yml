@@ -50,11 +50,11 @@
       ansible.builtin.hostname:
         name: "{{ inventory_hostname }}"
 
-    - name: Install vim, tmux, git, bash-completion, python3-pip
-      ansible.builtin.dnf:
-        name:
-          - vim
-          - tmux
-          - git
-          - bash-completion
-          - python3-pip
+    # - name: Install vim, tmux, git, bash-completion, python3-pip
+    #   ansible.builtin.dnf:
+    #     name:
+    #       - vim
+    #       - tmux
+    #       - git
+    #       - bash-completion
+    #       - python3-pip

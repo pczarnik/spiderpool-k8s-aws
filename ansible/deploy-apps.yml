@@ -55,6 +55,7 @@
       loop: "{{ busybox_pod_names.stdout_lines }}"
       register: busybox_pods_ips
       changed_when: false
+      ignore_errors: true
 
     - name: Print pods
       ansible.builtin.debug:
