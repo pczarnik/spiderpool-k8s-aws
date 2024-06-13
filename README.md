@@ -30,8 +30,8 @@ This project utilizes Terraform and Ansible to provision AWS EC2 instances and d
 
 #### Run provisioner and deployer script:
 
-    chmod +x run.sh
-    ./run.sh
+    chmod +x provision_and_deploy.sh
+    ./provision_and_deploy.sh
 
 This script will execute the necessary Terraform and Ansible commands to set up the environment,
 deploy Kubernetes, Spiderpool, and the applications.
